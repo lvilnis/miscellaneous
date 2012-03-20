@@ -1,0 +1,1 @@
+This is a sudoku-solver, written as a big old F# sequence comprehension. It doesn't have any backtracking so it only works for fairly easy sudokus. But gimme a break, when I wrote it I didn't know anything about search, and I'd never played a sudoku :(

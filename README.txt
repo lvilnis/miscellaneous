@@ -1,1 +1,1 @@
-This folder contains nothing so far, because I am setting it up.
+A few random projects that were/are just interesting/time-consuming enough that I wanted to put them on GitHub instead of losing half of them in my next computer upgrade.
