@@ -1,0 +1,23 @@
+﻿<Window x:Class="FSchemeFrontend.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="FScheme v0.00000001" Height="600" Width="800">
+    <Grid Background="Black" SnapsToDevicePixels="True">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="1*"/>
+            <RowDefinition Height="40"/>
+        </Grid.RowDefinitions>
+
+        <TextBox FontFamily="Courier New" Background="Black" Foreground="White" 
+                 Grid.Row="0" AcceptsTab="True" AcceptsReturn="True" Text="{Binding SourceCodeText}"></TextBox>
+        <TextBox FontFamily="Courier New" Background="Black" Foreground="White" 
+                 Grid.Row="1" AcceptsTab="True" AcceptsReturn="True" Text="{Binding Results, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"></TextBox>
+
+        <Button Content="Execute" Grid.Row="2" Margin="5" Width="75" HorizontalAlignment="Right" VerticalAlignment="Stretch" Command="{Binding RecalculateCommand}"></Button>
+        <Button Content="Load Tests" Grid.Row="2" Margin="5 5 165 5" Width="75" HorizontalAlignment="Right" VerticalAlignment="Stretch" Command="{Binding LoadTestsCommand}"></Button>
+        <Button Content="Infer Types" Grid.Row="2" Margin="5 5 85 5" Width="75" HorizontalAlignment="Right" VerticalAlignment="Stretch" Command="{Binding InferTypesCommand}"></Button>
+        <Button Content="Compile + Run" Grid.Row="2" Margin="5 5 245 5" Width="95" HorizontalAlignment="Right" VerticalAlignment="Stretch" Command="{Binding CompileCommand}"></Button>
+
+    </Grid>
+</Window>
