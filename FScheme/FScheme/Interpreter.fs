@@ -73,7 +73,7 @@ and applyPrimitive env sym args =
     | "+",_ -> applyArithmetic (+)
     | "-",_ -> applyArithmetic (-)
     | "/",_ -> applyArithmetic (/)
-    | "*",_ -> applyArithmetic (*)
+    | "*",_ -> applyArithmetic ( * )
     | "=", (l::r::[]) -> (if l = r then STrue else SFalse), env
     | "strcat",_ -> (SString(args |> List.map (function SString(str)->str)  |> String.concat "")), env
     | "list",_ -> SList(args), env
