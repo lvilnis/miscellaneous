@@ -2,13 +2,15 @@ Let's start putting together a _real_ Scala style guide that has code samples an
 
 Scala syntax is insanely hard to write a style guide for. That's because there are so many different ways to write any given thing, the temptation is to avoid being proscriptive and just give a series of "suggestions". This probably works for some people. Unfortunately, for people such as myself who have a touch of OCD when it comes to how their code looks, the lack of any sort of standard is extremely distracting and fatiguing. I currently waste a lot of energy while coding, trying to figure out which of the 10 bajillion rules in the current Scala style guide applies to my situation. As a measure of how useless that style guide is (to me - I'm sure it works well for some people whose brains are wired differently than mine), it contains relatively few code samples (!). Any style guide which must be described in prose as opposed to merely shown, is going to require way too much thinking to fulfull the primary goal of a style guide: A style guide, like a dress code, is meant to remove the element of distraction caused by non-standard appearance, so that the students (programmers) are free to concentrate on the task at hand without worrying whether their ass looks fat in those jeans (curly braces).
 
-Scala presents another unique challenge in that it is a very handsome language. Going through this style guide and looking in the "BAD" sections to see what syntax is prohibited, one will be struck by the fact that the so-called "BAD" choices often look really pretty. This is beside the point - I'm just trying to pick a syntax that is as uniform and robust as possible for things like method chaining.
+Scala presents another unique challenge in that it is a very handsome language. Going through this style guide and looking in the "BAD" sections to see what syntax is prohibited, one will be struck by the fact that the so-called "BAD" choices often look really pretty. This is beside the point - I'm just trying to pick a syntax that is as uniform and robust as possible for things like method chaining (and has no special cases to think about).
 
 At the end of this style guide I will attempt a couple of "case studies", where I go through reasonably sized existing chunks of code and confirm that this style guide is as unambiguous as possible in real-life coding situations.
 
 
  - LAMBDAS:
-   Lambdas should be surrounded with curly braces only when used as block arguments to "operator" notation, or "case" lambdas which require them. Operator notation should only be used as described in the separate "Infix ("operator") notation" item. It's really tempting to say "oh, just surround every function with curly braces" but it leads to such monstrosities as using curly braces in place of parentheses in non-operator notation, which looks fugly, overloads curly braces too much, and creates nasty irregularity with regular methods which are called with parens. the point of functional programming is that functions are regular values like anything else - introducing special notation that turns functions into second-class citizens is antithetical to this idea.
+   Lambdas should be surrounded with curly braces only when multi-line, when used as block arguments to "operator" notation (which means they should be multi line), or "case" lambdas which require them. Operator notation should only be used as described in the separate "Infix ("operator") notation" item. It's really tempting to say "oh, just surround every function with curly braces" but it leads to such monstrosities as using curly braces in place of parentheses in non-operator notation, which looks fugly, overloads curly braces too much, and creates nasty irregularity with regular methods which are called with parens, as well as functions that take multiple functions as arguments. the point of functional programming is that functions are regular values like anything else - introducing special notation that turns functions into weird bumpy second-class citizens is antithetical to this idea.
+
+   The lambda arguments for multi-line lambdas can go either on the same line as the starting curly brace, or the next line for a single-line-body (this applies to regular and case lambdas). Just do whatever looks good. Avoid using them on the next line and then indenting again for the body. The argument should usually go inside the curly braces - I haven't yet decided when/whether its ok to put the argument outside. 
 
    BAD:
 
@@ -19,21 +21,40 @@ At the end of this style guide I will attempt a couple of "case studies", where 
    xs.toSeq .filter { pred(_) } .foreach { _ + 1 } .toArray   // lolwut?!? a possibility but overlaps too much w/ operator notation that we get a cognitive load
    xs .toSeq .filter { pred(_) } .foreach { _ + 1 } .toArray  // see above (plus the "."'s feel like they're pulling my eye left or something)
 
+   val result = xs.toSeq filter { 
+     x =>
+       calling(a).big.long.method(arent).you.glad.its.on.its.own.line(x)
+   }
 
    GOOD:
 
    // Oh sweet, merciful unambiguity!!
    xs.toSeq.filter(pred(_)).map(_ + 1).toArray
 
+   val result = xs.toSeq filter { x =>
+     calling(a).big.long.method(arent).you.glad.its.on.its.own.line(x)
+   }
+
+   val result = xs.toSeq filter { 
+     x => calling(a).big.long.method(arent).you.glad.its.on.its.own.line(x)
+   }
 
  - INFIX NOTATION:
    Infix ("operator") notation: use this with symbolic methods, or single-arg-list higher-order functions _when the function spans multiple lines_. Tentative: maybe also when the function is a single-line "case" lambda, but in that case prolly safer to keep the "." and surround it in parentheses. Certain methods are verrrry close to operators, like "drop" and "take". I've not yet completely decided about those, but I'm leaning very heavily towards no exceptions. The reason to eschew operator notation whenever possible, is that it is very brittle - if a call to a multi-argument method, or a 0 argument method (much more common), is added to a chain of infix calls, the entire chain must be surrounded with parentheses, or we must change it from infix to dotted notation. This is unacceptable - requiring these sort of non-local syntax changes just for something as audacious as calling a 0-argument method creates weird incentives on the programmer to avoid such calls, break everything into intermediate variables (often annoying), and generally to spend inordinate time thinking about syntax. This is exhausting.
 
+   "to" and "until" are totally allowed to be infix. they are basically keywords.
    "format" is built-in to scala and is first-class-feeling-enough that it can be used infix (it also is almost never chained. This is tentative and may be revoked.)
    what about take, drop, etc?
    get, getOrElse?
    no! stop trying, scala!
    infix is only used w/ symbolic method names, and multi-line HOFs that are being used like control structures.
+
+  Here's another thing to consider... maybe not allow infix at all for HOFs, but still allow the final "block" argument to be used w/o parens - I've never used ruby, but I think that may be exactly what ruby blocks look like...:
+  // this is verrrry tempting!
+  xs.toSeq.foreach { x =>
+    if (pred(x))
+  	  items.add(x)
+  }
 
   GOOD:
   
@@ -119,7 +140,43 @@ At the end of this style guide I will attempt a couple of "case studies", where 
    }
 
  - MATCH:
-   If you include curly braces around each "case" clause, 
+   If you include curly braces around the body of each "case" clause, you are wrong. I mean, ewww. There's a war on, you know - no use senselessly wasting precious curly braces. If the body inside the case clause is one line, you can start it either on the same line as the pattern or on the subsequent line indented. If it is more than one line, start it on the subsequent line.
+
+   GOOD:
+
+   xs match {
+     case a :: b :: tl => b :: a :: tl
+     case Nil => Nil
+   }
+
+   xs match {
+     case a :: b :: tl => 
+       println("ah, this match clause sure looks neato")
+       b :: a :: tl
+     case Nil =>
+       Nil
+   }
+
+   BAD:
+
+   xs match {
+     case a :: b :: tl => println("ah, this match clause sure looks neato")
+       b :: a :: tl
+     case Nil =>
+       Nil
+   }
+
+   xs match {
+     case hd :: tl => {
+       println("help, I'm trapped inside a pair of curly braces!")
+     }
+     case Nil => {
+       println("I'd help you, but I too am trapped inside curly braces...")
+     }
+   }
+   // As an aside, this is one of the times writing a Scala style guide is really hard - everything always looks so cool.
+   // I mean, I hate curly braces inside match as much as anyone, but Scala just can't help itself from looking badass and
+   // futuristic even in this case!
 
 
 
