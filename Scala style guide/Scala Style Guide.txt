@@ -1,0 +1,133 @@
+Let's start putting together a _real_ Scala style guide that has code samples and isn't wishy-washy
+
+Scala syntax is insanely hard to write a style guide for. That's because there are so many different ways to write any given thing, the temptation is to avoid being proscriptive and just give a series of "suggestions". This probably works for some people. Unfortunately, for people such as myself who have a touch of OCD when it comes to how their code looks, the lack of any sort of standard is extremely distracting and fatiguing. I currently waste a lot of energy while coding, trying to figure out which of the 10 bajillion rules in the current Scala style guide applies to my situation. As a measure of how useless that style guide is (to me - I'm sure it works well for some people whose brains are wired differently than mine), it contains relatively few code samples (!). Any style guide which must be described in prose as opposed to merely shown, is going to require way too much thinking to fulfull the primary goal of a style guide: A style guide, like a dress code, is meant to remove the element of distraction caused by non-standard appearance, so that the students (programmers) are free to concentrate on the task at hand without worrying whether their ass looks fat in those jeans (curly braces).
+
+Scala presents another unique challenge in that it is a very handsome language. Going through this style guide and looking in the "BAD" sections to see what syntax is prohibited, one will be struck by the fact that the so-called "BAD" choices often look really pretty. This is beside the point - I'm just trying to pick a syntax that is as uniform and robust as possible for things like method chaining.
+
+At the end of this style guide I will attempt a couple of "case studies", where I go through reasonably sized existing chunks of code and confirm that this style guide is as unambiguous as possible in real-life coding situations.
+
+
+ - LAMBDAS:
+   Lambdas should be surrounded with curly braces only when used as block arguments to "operator" notation, or "case" lambdas which require them. Operator notation should only be used as described in the separate "Infix ("operator") notation" item. It's really tempting to say "oh, just surround every function with curly braces" but it leads to such monstrosities as using curly braces in place of parentheses in non-operator notation, which looks fugly, overloads curly braces too much, and creates nasty irregularity with regular methods which are called with parens. the point of functional programming is that functions are regular values like anything else - introducing special notation that turns functions into second-class citizens is antithetical to this idea.
+
+   BAD:
+
+   // this sort of grows on you. we'll revisit but I think it's just too damn weird.
+   xs.toSeq.filter{pred(_)}.map{_ + 1}.toArray                // too cramped and bizzare. are those curly braces in there?
+   xs.toSeq.filter{ pred(_) }.foreach{ _ + 1 }.toArray        // too unbalanced
+   xs.toSeq.filter { pred(_) }.foreach { _ + 1 }.toArray      // too unbalanced
+   xs.toSeq .filter { pred(_) } .foreach { _ + 1 } .toArray   // lolwut?!? a possibility but overlaps too much w/ operator notation that we get a cognitive load
+   xs .toSeq .filter { pred(_) } .foreach { _ + 1 } .toArray  // see above (plus the "."'s feel like they're pulling my eye left or something)
+
+
+   GOOD:
+
+   // Oh sweet, merciful unambiguity!!
+   xs.toSeq.filter(pred(_)).map(_ + 1).toArray
+
+
+ - INFIX NOTATION:
+   Infix ("operator") notation: use this with symbolic methods, or single-arg-list higher-order functions _when the function spans multiple lines_. Tentative: maybe also when the function is a single-line "case" lambda, but in that case prolly safer to keep the "." and surround it in parentheses. Certain methods are verrrry close to operators, like "drop" and "take". I've not yet completely decided about those, but I'm leaning very heavily towards no exceptions. The reason to eschew operator notation whenever possible, is that it is very brittle - if a call to a multi-argument method, or a 0 argument method (much more common), is added to a chain of infix calls, the entire chain must be surrounded with parentheses, or we must change it from infix to dotted notation. This is unacceptable - requiring these sort of non-local syntax changes just for something as audacious as calling a 0-argument method creates weird incentives on the programmer to avoid such calls, break everything into intermediate variables (often annoying), and generally to spend inordinate time thinking about syntax. This is exhausting.
+
+   "format" is built-in to scala and is first-class-feeling-enough that it can be used infix (it also is almost never chained. This is tentative and may be revoked.)
+   what about take, drop, etc?
+   get, getOrElse?
+   no! stop trying, scala!
+   infix is only used w/ symbolic method names, and multi-line HOFs that are being used like control structures.
+
+  GOOD:
+  
+  xs.toSeq foreach { x =>
+    if (pred(x))
+  	  items.add(x)
+  }
+
+  "%d + %d = %d" format (1, 2, 1 + 2)
+  
+  xs.toSeq.filter(pred _).foreach(items.add(_))
+  xs.toSeq.filter(pred(_)).foreach(items.add(_))
+
+  val x = 12 + 87
+
+  authorsToWordsAndCounts(author).getOrElse(word, 0) + 1
+
+  BAD:
+  // even this doesn't look that bad. consider skipping operator notation altogether for anything but symbolic methods.
+  xs.toSeq.foreach(x => {
+    if (pred(x))
+  	  items.add(x)
+  })
+
+  // These syntaxes are seductive at first, but they either violate our ewgrosscurlybracesusedasparentheses rule, or make it impossible to add postfix calls
+  xs.toSeq filter (pred _) foreach (items add _)
+  xs.toSeq filter { pred _ } foreach { items add _ }
+  xs.toSeq filter { pred(_) } foreach { items.add(_) }
+  xs.toSeq.filter{pred(_)}.foreach{items.add(_)}
+  xs.toSeq.filter{pred _}.foreach{items add _}
+
+  val x = 12.+(87)
+
+  // For example: you write this - using infix notation, sittin' pretty. this is precisely what infix notation
+  // was made for, right? "getOrElse" is like an operator on options/maps, super handy.
+  authorsToWordsAndCounts(author) getOrElse (word, 0)
+  // then you realize that you need to add 1 to all the counts (Laplace smoothing) - no problem, just another operator, right?
+  authorsToWordsAndCounts(author) getOrElse (word, 0) + 1
+  // BZZZZ! WRONG! this fails to compile - I haven't the slightest clue why. This is why infix notation is nuts - it makes you
+  // think about syntax all the time. What a waste of time...
+
+
+ - POSTFIX NOTATION:
+   No! Postfix notation was an attempt to make the snazzy operator notation work w/ trailing 0-argument methods - a very common use-case (ending a lazy comprehension with a strict "toList" or "toArray", etc). Postfix notation rocks the parser right in its face and has been generally agreed upon to be a Bad Idea. What isn't as generally agreed upon is that the lack of workable postfix notation is one of the biggest nails in the coffin of pervasive operator notation. It is unacceptable to have to make a new definition if I just want to "toSeq" at the end of a method chain - once again syntax is intruding way too much on how we write our code. The point of this guide is to eliminate that to the fullest extent possible.
+
+   GOOD:
+
+   xs.filter(_ < 5).toList
+   xs.map(List(_)).flatten
+
+   BAD:
+
+   xs filter (_ < 5) toList
+   xs map (List(_)) flatten
+
+
+ - "ARGUMENT LIST" UNDERSCORES:
+   What about turning methods into functions - should we use postfix underscore, or "(_)"? Postfix underscore looks irregular (we're not allowed to use postfix notation, except in this case? wtf) - it's just one more weird wrinkle. No thanks! Additionally, letting the "_" stand in for an entire argument list is just confusing and weird. You may notice my general philosophy is to prefer eta-expanded functions whenever possible - I think Scala's "_" lambdas are a great way to get the power and brevity of currying, while keeping the readability of eta expansion.
+
+   GOOD:
+
+   xs.toSeq.filter(pred(_)).foreach(items.add(_))
+   xs.toSeq.filter(pred(_)).fold(combine(_, _))
+
+   BAD:
+
+   xs.toSeq.filter(pred _).foreach(items.add(_))
+   xs.toSeq.filter(pred(_)).fold(combine _)
+
+ - CALL BY NAME ARGUMENTS:
+   Call by name arguments that are just meant to mimic lazy evaluation (used in some of that masturbatory scalaz nonsense) should be written the same as any other argument. Calls to methods with call by name arguments that are meant to be used as "blocks", to mimic control structures, should be written as if they were control structures - that is, put a space between the method name and the argument lists, and use curly braces to delimit the block:
+
+   GOOD:
+
+   timed ("doSomethingExpensive() took %d seconds") {
+     doSomethingExpensive()
+   }
+
+   BAD:
+
+   timed("doSomethingExpensive() took %d seconds") {
+     doSomethingExpensive()
+   }
+
+ - MATCH:
+   If you include curly braces around each "case" clause, 
+
+
+
+
+
+
+
+
+
+
+
