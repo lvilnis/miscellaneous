@@ -40,61 +40,66 @@ At the end of this style guide I will attempt a couple of "case studies", where 
    }
 
  - INFIX NOTATION:
-   Infix ("operator") notation: use this with symbolic methods, or single-arg-list higher-order functions _when the function spans multiple lines_. Tentative: maybe also when the function is a single-line "case" lambda, but in that case prolly safer to keep the "." and surround it in parentheses. Certain methods are verrrry close to operators, like "drop" and "take". I've not yet completely decided about those, but I'm leaning very heavily towards no exceptions. The reason to eschew operator notation whenever possible, is that it is very brittle - if a call to a multi-argument method, or a 0 argument method (much more common), is added to a chain of infix calls, the entire chain must be surrounded with parentheses, or we must change it from infix to dotted notation. This is unacceptable - requiring these sort of non-local syntax changes just for something as audacious as calling a 0-argument method creates weird incentives on the programmer to avoid such calls, break everything into intermediate variables (often annoying), and generally to spend inordinate time thinking about syntax. This is exhausting.
+   Infix ("operator") notation: use this with symbolic methods, or single-arg-list higher-order functions _when the function spans multiple lines_, and when the call comes in the last position of the expression. In this case we're basically treating it as a control structure. No chaining - if you want to chain, use dots and parentheses. This is very much like the suggested use of Ruby blocks.
 
-   "to" and "until" are totally allowed to be infix. they are basically keywords.
+   The reason to eschew operator notation whenever possible, is that it is very brittle - if a call to a multi-argument method, or a 0 argument method (much more common), is added to a chain of infix calls, the entire chain must be surrounded with parentheses, or we must change it from infix to dotted notation. This is unacceptable - requiring these sort of non-local syntax changes just for something as audacious as calling a 0-argument method creates weird incentives on the programmer to avoid such calls, break everything into intermediate variables (often annoying), and generally to spend inordinate time thinking about syntax. This is exhausting.
+
+   Excessive use of infix notation also makes it hard to see what are the arguments and what are the methods - those parentheses really kinda do serve a point, you know (this is not much of a problem with lambdas, and if it was, one could rightfully suggest surrounding every lambda with curly braces as a solution). 
+
+   There are a few built-in (standard lib) methods that are sort of treated like binary operators - you can decide for your self which ones are appropriate w/ infix notation. I would recommend not doing more than a handful of operators this way, or else you'll basically defeat the purpose of this guide in be back in thinking-way-too-much-about-syntax land:
+   
+   GOOD:
+   "to" and "until" are totally allowed to be infix. they are basically keywords (you could also say they're part of an internal DSL for generating sequences).
    "format" is built-in to scala and is first-class-feeling-enough that it can be used infix (it also is almost never chained. This is tentative and may be revoked.)
-   what about take, drop, etc?
-   get, getOrElse?
-   no! stop trying, scala!
-   infix is only used w/ symbolic method names, and multi-line HOFs that are being used like control structures.
+   BAD:
+   take, drop, contains, zip, etc. These are just standard, often-chained methods for dealing w/ sequences. Allow these and you're back to square one.
 
-  Here's another thing to consider... maybe not allow infix at all for HOFs, but still allow the final "block" argument to be used w/o parens - I've never used ruby, but I think that may be exactly what ruby blocks look like...:
-  // this is verrrry tempting!
-  xs.toSeq.foreach { x =>
-    if (pred(x))
-  	  items.add(x)
-  }
+   Here's another thing to consider... maybe not allow infix at all for HOFs, but still allow the final "block" argument to be used w/o parens - this is just like Ruby blocks:
+   xs.toSeq.foreach { x =>
+     if (pred(x))
+  	   items.add(x)
+   }
 
-  GOOD:
+   GOOD:
   
-  xs.toSeq foreach { x =>
-    if (pred(x))
-  	  items.add(x)
-  }
+   xs.toSeq foreach { x =>
+     if (pred(x))
+  	   items.add(x)
+   }
 
-  "%d + %d = %d" format (1, 2, 1 + 2)
+   "%d + %d = %d" format (1, 2, 1 + 2)
   
-  xs.toSeq.filter(pred _).foreach(items.add(_))
-  xs.toSeq.filter(pred(_)).foreach(items.add(_))
+   xs.toSeq.filter(pred _).foreach(items.add(_))
+   xs.toSeq.filter(pred(_)).foreach(items.add(_))
 
-  val x = 12 + 87
+   val x = 12 + 87
 
-  authorsToWordsAndCounts(author).getOrElse(word, 0) + 1
+   authorsToWordsAndCounts(author).getOrElse(word, 0) + 1
 
-  BAD:
-  // even this doesn't look that bad. consider skipping operator notation altogether for anything but symbolic methods.
-  xs.toSeq.foreach(x => {
-    if (pred(x))
-  	  items.add(x)
-  })
+   BAD:
+   // even this doesn't look that bad. consider skipping operator notation altogether for anything but symbolic methods.
+   xs.toSeq.foreach(x => {
+     if (pred(x))
+  	   items.add(x)
+   })
 
-  // These syntaxes are seductive at first, but they either violate our ewgrosscurlybracesusedasparentheses rule, or make it impossible to add postfix calls
-  xs.toSeq filter (pred _) foreach (items add _)
-  xs.toSeq filter { pred _ } foreach { items add _ }
-  xs.toSeq filter { pred(_) } foreach { items.add(_) }
-  xs.toSeq.filter{pred(_)}.foreach{items.add(_)}
-  xs.toSeq.filter{pred _}.foreach{items add _}
+   // These syntaxes are seductive at first, but they either violate our ewgrosscurlybracesusedasparentheses rule, or make it impossible to add postfix calls
+   xs.toSeq filter (pred _) foreach (items add _)
+   xs.toSeq filter { pred _ } foreach { items add _ }
+   xs.toSeq filter { pred(_) } foreach { items.add(_) }
+   xs.toSeq.filter{pred(_)}.foreach{items.add(_)}
+   xs.toSeq.filter{pred _}.foreach{items add _}
 
-  val x = 12.+(87)
+   val x = 12.+(87)
 
-  // For example: you write this - using infix notation, sittin' pretty. this is precisely what infix notation
-  // was made for, right? "getOrElse" is like an operator on options/maps, super handy.
-  authorsToWordsAndCounts(author) getOrElse (word, 0)
-  // then you realize that you need to add 1 to all the counts (Laplace smoothing) - no problem, just another operator, right?
-  authorsToWordsAndCounts(author) getOrElse (word, 0) + 1
-  // BZZZZ! WRONG! this fails to compile - I haven't the slightest clue why. This is why infix notation is nuts - it makes you
-  // think about syntax all the time. What a waste of time...
+   // For example: you write this - using infix notation, sittin' pretty. this is precisely what infix notation
+   // was made for, right? "getOrElse" is like an operator on options/maps, super handy.
+   authorsToWordsAndCounts(author) getOrElse (word, 0)
+   // then you realize that you need to add 1 to all the counts (Laplace smoothing) - no problem, just another operator, right?
+   authorsToWordsAndCounts(author) getOrElse (word, 0) + 1
+   // BZZZZ! WRONG! this fails to compile - I'm guessing cause method calls have lower precedence than arithmetic operators, so you
+   // can write things like "x <- 1 until n - 1" and have it do what you want. This is why infix notation is nuts - it makes you
+   // think about syntax all the time. What a waste of time...
 
 
  - POSTFIX NOTATION:
@@ -125,7 +130,8 @@ At the end of this style guide I will attempt a couple of "case studies", where 
    xs.toSeq.filter(pred(_)).fold(combine _)
 
  - CALL BY NAME ARGUMENTS:
-   Call by name arguments that are just meant to mimic lazy evaluation (used in some of that masturbatory scalaz nonsense) should be written the same as any other argument. Calls to methods with call by name arguments that are meant to be used as "blocks", to mimic control structures, should be written as if they were control structures - that is, put a space between the method name and the argument lists, and use curly braces to delimit the block:
+   Call by name arguments that are just meant to mimic lazy evaluation should be written the same as any other argument.
+   Calls to methods with call by name arguments that are meant to be used as "blocks", to mimic control structures, should be written as if they were control structures - that is, put a space between the method name and the argument lists, and use curly braces to delimit the block. Note that this can actually require you to write the same method call differently in different circumstances (like Array.fill - are you filling it with a constant, or taking advantage of the call-by-nameness?):
 
    GOOD:
 
@@ -133,11 +139,20 @@ At the end of this style guide I will attempt a couple of "case studies", where 
      doSomethingExpensive()
    }
 
+   // Intent matters - this requires curly braces because the fact that the filler is re-evaluated is being put to use...
+   val z = Array.fill (documents(di).length) { 
+     scala.util.Random.nextInt(K)
+   }
+
+   val alpha = Array.fill(K)(50 / K)
+
    BAD:
 
    timed("doSomethingExpensive() took %d seconds") {
      doSomethingExpensive()
    }
+   // This is just being used like a function and you know it!
+   val alpha = Array.fill (K) { 50 / K }
 
  - MATCH:
    If you include curly braces around the body of each "case" clause, you are wrong. I mean, ewww. There's a war on, you know - no use senselessly wasting precious curly braces. If the body inside the case clause is one line, you can start it either on the same line as the pattern or on the subsequent line indented. If it is more than one line, start it on the subsequent line.
@@ -179,12 +194,22 @@ At the end of this style guide I will attempt a couple of "case studies", where 
    // futuristic even in this case!
 
 
+  MULTIPLE ARGUMENT LISTS:
+  If the last argument is a block, treat it like a call by name control structure and put a space before the first argument list (tentative).
+
+  GOOD:
+
+  val y = Array.tabulate (M) { di =>
+    val doc = documents(di)
+    Array.tabulate (doc.length) { wi => distinctWordToIndex(doc(wi)) }
+  }
 
 
+  BAD:
 
-
-
-
-
+  val y = Array.tabulate(M) { di =>
+    val doc = documents(di)
+    Array.tabulate(doc.length) { wi => distinctWordToIndex(doc(wi)) }
+  }
 
 
